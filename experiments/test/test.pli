@@ -5,4 +5,6 @@ main: PROCEDURE OPTIONS(main);
 	DECLARE i INT;
 
 	c = a + b;
+
+	PUT LIST (c);
 END main;

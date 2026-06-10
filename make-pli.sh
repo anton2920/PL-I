@@ -7,7 +7,7 @@ TARGET=$1
 
 case $TARGET in
 '')
-	pli $PROJECT.pli
+	pli $PROJECT.pli -qmargins'(1,200)'
 	;;
 clean)
 	rm -f *.o *.lst *.map $PROJECT
