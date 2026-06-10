@@ -1,0 +1,3 @@
+main: PROCEDURE OPTIONS(main);
+        PUT LIST ('Hello, world!');
+END main;

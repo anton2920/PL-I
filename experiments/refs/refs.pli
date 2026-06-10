@@ -1,0 +1,16 @@
+main: PROCEDURE OPTIONS(main);
+	Foo: PROCEDURE(x);
+		DECLARE x FIXED BINARY;
+		x = 123;
+	END Foo;
+	
+	DECLARE (x, y) FIXED BINARY;
+	
+	PUT LIST ('Type x, y: ');
+	GET LIST (x, y);
+
+	CALL Foo((x));
+	CALL Foo(y);
+
+	PUT LIST ('x = ', x, ' y = ', y);
+END main;

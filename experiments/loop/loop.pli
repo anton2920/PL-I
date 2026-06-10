@@ -1,0 +1,42 @@
+main: PROCEDURE OPTIONS(main);
+	%REPLACE TRUE BY '1'b;
+
+        A: PROCEDURE(x) RETURNS(FLOAT);
+		DECLARE x FLOAT ;
+		RETURN (4 * x + 1);
+	END A;
+
+	B: PROCEDURE(x) RETURNS(FLOAT);
+		DECLARE x FLOAT;
+		RETURN (5 * x);
+	END B;
+
+	C: PROCEDURE(x) RETURNS(FLOAT);
+		DECLARE x FLOAT;
+		RETURN (x);
+	END C;
+
+	DECLARE pf (3)ENTRY(FLOAT) RETURNS (FLOAT) VARIABLE;
+	DECLARE f ENTRY(FLOAT) RETURNS (FLOAT) VARIABLE;
+	DECLARE (x, y) FLOAT;
+	DECLARE i INT;
+	
+	pf(1) = A;
+	pf(2) = B;
+	pf(3) = C;
+
+	DO WHILE (TRUE);
+		PUT LIST ('Type x (zero to exit): ');
+		GET LIST (x);
+		IF ABS(x) < 1E-6 THEN GO TO STOP;
+		
+		IF      x < -1  THEN i = 1;
+		ELSE IF x <= 10 THEN i = 2;
+		ELSE                 i = 3;
+
+		f = pf(i);
+		y = f(x);
+
+		PUT LIST ('f(', x, ') = ', y); PUT SKIP;
+	END; STOP:
+END main;

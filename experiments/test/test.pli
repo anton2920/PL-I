@@ -1,0 +1,8 @@
+main: PROCEDURE OPTIONS(main);
+	DECLARE a (8)INT STATIC INITIAL(1,  2,  3,  4,  5,  6,  7,  8);
+	DECLARE b (8)INT STATIC INITIAL(9, 10, 11, 12, 13, 14, 15, 16);
+	DECLARE c (8)INT STATIC;
+	DECLARE i INT;
+
+	c = a + b;
+END main;
