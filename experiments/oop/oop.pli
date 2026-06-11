@@ -1,5 +1,6 @@
-%DECLARE NIL CHARACTER; %NIL = 'POINTERVALUE(0)';
-%DECLARE PI CHARACTER;  %PI  = '3.1415926536';
+%DECLARE NIL  CHARACTER; %NIL  = 'POINTERVALUE(0)';
+%DECLARE PI   CHARACTER; %PI   = '3.1415926536';
+%DECLARE NMAX FIXED;     %NMAX = 20;
 
 %Major: PROCEDURE(level, field) RETURNS(CHARACTER);
 	DECLARE level FIXED, field CHARACTER;
@@ -29,14 +30,16 @@
 %StructShape: PROCEDURE(level, name) RETURNS(CHARACTER);
 	DECLARE level FIXED, name CHARACTER;
 	RETURN (Major(level, name)
-		|| Minor(level+1, 'Area ENTRY(POINTER) RETURNS(FLOAT BINARY)'));
+		|| Minor(level+1, 'Area ENTRY(POINTER) RETURNS(FLOAT BINARY)')
+		|| Minor(level+1, 'Name ENTRY RETURNS(CHARACTER(NMAX) VARYING)')
+	);
 %END;
 
 %DECLARE StructRectangle ENTRY(FIXED, CHARACTER);
 %StructRectangle: PROCEDURE(level, name) RETURNS(CHARACTER);
 	DECLARE level FIXED, name CHARACTER;
 	RETURN (Major(level, name)
-		|| Embedded(StructShape(level+1, 'Vtable'))
+		|| Embedded(StructShape(level+1, 'Super'))
 		|| Minor(level+1, 'Points')
 			|| Embedded(StructPoint(level+2, 'TL'))
 			|| Embedded(StructPoint(level+2, 'TR'))
@@ -49,11 +52,27 @@
 %StructCircle: PROCEDURE(level, name) RETURNS(CHARACTER);
 	DECLARE level FIXED, name CHARACTER;
 	RETURN (Major(level, name)
-		|| Embedded(StructShape(level+1, 'Vtable'))
+		|| Embedded(StructShape(level+1, 'Super'))
 		|| Embedded(StructPoint(level+1, 'Center'))
 		|| Minor(level+1, 'Radius FLOAT BINARY')
 	);
 %END;
+
+%DECLARE StructSquare ENTRY(FIXED, CHARACTER);
+%StructSquare: PROCEDURE(level, name) RETURNS(CHARACTER);
+	DECLARE level FIXED, name CHARACTER;
+	RETURN (Major(level, name)
+		|| Embedded(StructRectangle(level+1, 'Super'))
+	);
+%END;
+
+ASSERT: PROCEDURE(cond, msg);
+	DECLARE cond BIT(1), msg CHARACTER(255) VARYING;
+	IF !cond THEN DO;
+		DISPLAY('ASSERTION FAILED: ' || msg);
+		EXIT;
+	END;
+END;
 
 Hypot: PROCEDURE(a, b) RETURNS(FLOAT BINARY);
 	RETURN (SQRT(a**2 + b**2));
@@ -69,16 +88,37 @@ RectangleArea: PROCEDURE(pr) RETURNS(FLOAT BINARY);
 	RETURN (a * b);
 END;
 
+RectangleName: PROCEDURE RETURNS(CHARACTER(NMAX) VARYING);
+	RETURN ('rectangle');
+END;
+
+SquareName: PROCEDURE RETURNS(CHARACTER(NMAX) VARYING);
+	RETURN ('square');
+END;
+
 RectangleNew: PROCEDURE(tl, br) RETURNS(POINTER);
 	DECLARE StructPoint(1, tl), StructPoint(1, br);
 	DECLARE pr POINTER, StructRectangle(1, r BASED(pr));
+	DECLARE square BIT(1);
 
+	square = '0'B;
+	GO TO body;
+
+SquareNew: ENTRY(tl, br) RETURNS(POINTER);
+	CALL ASSERT(ABS(br.X - tl.X) = ABS(tl.Y - br.Y), 'passed points do not belong to a square');
+	square = '1'B;
+
+body:
 	ALLOCATE r;
+
 	r.TL = tl;
 	r.TR.X = br.X; r.TR.Y = tl.Y;
 	r.BL.X = tl.X; r.BL.Y = br.Y;
 	r.BR = br;
+
 	r.Area = RectangleArea;
+	IF square THEN r.Name = SquareName;
+	ELSE           r.Name = RectangleName;
 
 	RETURN (pr);
 END;
@@ -88,20 +128,27 @@ CircleArea: PROCEDURE(pc) RETURNS(FLOAT BINARY);
 	RETURN (PI * c.Radius ** 2);
 END;
 
+CircleName: PROCEDURE RETURNS(CHARACTER(NMAX) VARYING);
+	RETURN ('circle');
+END;
+
 CircleNew: PROCEDURE(center, radius) RETURNS(POINTER);
 	DECLARE StructPoint(1, center), radius FLOAT BINARY;
 	DECLARE pc POINTER, StructCircle(1, c BASED(pc));
 
 	ALLOCATE c;
+
 	c.Center = center;
 	c.Radius = radius;
+
 	c.Area = CircleArea;
+	c.Name = CircleName;
 
 	RETURN (pc);
 END;
 
 main: PROCEDURE OPTIONS(main);
-	DECLARE shapes(2) POINTER;
+	DECLARE shapes(3) POINTER;
 
 	DECLARE StructPoint(1, p), StructPoint(1, q);
 	p.X = 1; p.Y = 2; q.X = 3; q.Y = 4;
@@ -110,9 +157,12 @@ main: PROCEDURE OPTIONS(main);
 	p.X = 5; p.Y = 5;
 	shapes(2) = CircleNew(p, 10);
 
+	p.X = 10; p.Y = 10; q.X = 20; q.Y = 20;
+	shapes(3) = SquareNew(p, q);
+
 	DO i = LBOUND(shapes) TO HBOUND(shapes); BEGIN;
 		DECLARE StructShape(1, shape BASED(shapes(i)));
-		PUT SKIP LIST('Area = ' || shape.Area(shapes(i)));
+		PUT SKIP LIST('Area of ' || shape.Name(shapes(i)) || ' is ' || shape.Area(shapes(i)));
 	END; END;
 
 	PUT SKIP LIST ('Hello, world!');
