@@ -164,6 +164,4 @@ main: PROCEDURE OPTIONS(main);
 		DECLARE StructShape(1, shape BASED(shapes(i)));
 		PUT SKIP LIST('Area of ' || shape.Name(shapes(i)) || ' is ' || shape.Area(shapes(i)));
 	END; END;
-
-	PUT SKIP LIST ('Hello, world!');
 END;
