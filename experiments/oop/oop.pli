@@ -29,7 +29,7 @@
 %StructShape: PROCEDURE(level, name) RETURNS(CHARACTER);
 	DECLARE level FIXED, name CHARACTER;
 	RETURN (Major(level, name)
-		|| Minor(level+1, 'Area LIMITED ENTRY(POINTER) RETURNS(FLOAT BINARY)'));
+		|| Minor(level+1, 'Area ENTRY(POINTER) RETURNS(FLOAT BINARY)'));
 %END;
 
 %DECLARE StructRectangle ENTRY(FIXED, CHARACTER);
