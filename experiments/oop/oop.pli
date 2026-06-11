@@ -1,0 +1,119 @@
+%DECLARE NIL CHARACTER; %NIL = 'POINTERVALUE(0)';
+%DECLARE PI CHARACTER;  %PI  = '3.1415926536';
+
+%Major: PROCEDURE(level, field) RETURNS(CHARACTER);
+	DECLARE level FIXED, field CHARACTER;
+	RETURN (level || ' ' || field);
+%END;
+
+%Embedded: PROCEDURE(field) RETURNS(CHARACTER);
+	DECLARE field CHARACTER;
+	RETURN (', ' || field);
+%END;
+
+%Minor: PROCEDURE(level, field) RETURNS(CHARACTER);
+	DECLARE level FIXED, field CHARACTER;
+	RETURN (Embedded(Major(level, field)));
+%END;
+
+%DECLARE StructPoint ENTRY(FIXED, CHARACTER);
+%StructPoint: PROCEDURE(level, name) RETURNS(CHARACTER);
+	DECLARE level FIXED, name CHARACTER;
+	RETURN(Major(level, name)
+		|| Minor(level+1, 'X FLOAT BINARY')
+		|| Minor(level+1, 'Y FLOAT BINARY')
+	);
+%END;
+
+%DECLARE StructShape ENTRY(FIXED, CHARACTER);
+%StructShape: PROCEDURE(level, name) RETURNS(CHARACTER);
+	DECLARE level FIXED, name CHARACTER;
+	RETURN (Major(level, name)
+		|| Minor(level+1, 'Area LIMITED ENTRY(POINTER) RETURNS(FLOAT BINARY)'));
+%END;
+
+%DECLARE StructRectangle ENTRY(FIXED, CHARACTER);
+%StructRectangle: PROCEDURE(level, name) RETURNS(CHARACTER);
+	DECLARE level FIXED, name CHARACTER;
+	RETURN (Major(level, name)
+		|| Embedded(StructShape(level+1, 'Vtable'))
+		|| Minor(level+1, 'Points')
+			|| Embedded(StructPoint(level+2, 'TL'))
+			|| Embedded(StructPoint(level+2, 'TR'))
+			|| Embedded(StructPoint(level+2, 'BL'))
+			|| Embedded(StructPoint(level+2, 'BR'))
+	);
+%END;
+
+%DECLARE StructCircle ENTRY(FIXED, CHARACTER);
+%StructCircle: PROCEDURE(level, name) RETURNS(CHARACTER);
+	DECLARE level FIXED, name CHARACTER;
+	RETURN (Major(level, name)
+		|| Embedded(StructShape(level+1, 'Vtable'))
+		|| Embedded(StructPoint(level+1, 'Center'))
+		|| Minor(level+1, 'Radius FLOAT BINARY')
+	);
+%END;
+
+Hypot: PROCEDURE(a, b) RETURNS(FLOAT BINARY);
+	RETURN (SQRT(a**2 + b**2));
+END;
+
+RectangleArea: PROCEDURE(pr) RETURNS(FLOAT BINARY);
+	DECLARE pr POINTER, StructRectangle(1, r BASED(pr));
+	DECLARE (a, b) FLOAT BINARY;
+
+	a = Hypot(r.TR.X - r.TL.X, r.TR.Y - r.TL.Y);
+	b = Hypot(r.TL.X - r.BL.X, r.TL.Y - r.BL.Y);
+
+	RETURN (a * b);
+END;
+
+RectangleNew: PROCEDURE(tl, br) RETURNS(POINTER);
+	DECLARE StructPoint(1, tl), StructPoint(1, br);
+	DECLARE pr POINTER, StructRectangle(1, r BASED(pr));
+
+	ALLOCATE r;
+	r.TL = tl;
+	r.TR.X = br.X; r.TR.Y = tl.Y;
+	r.BL.X = tl.X; r.BL.Y = br.Y;
+	r.BR = br;
+	r.Area = RectangleArea;
+
+	RETURN (pr);
+END;
+
+CircleArea: PROCEDURE(pc) RETURNS(FLOAT BINARY);
+	DECLARE pc POINTER, StructCircle(1, c BASED(pc));
+	RETURN (PI * c.Radius ** 2);
+END;
+
+CircleNew: PROCEDURE(center, radius) RETURNS(POINTER);
+	DECLARE StructPoint(1, center), radius FLOAT BINARY;
+	DECLARE pc POINTER, StructCircle(1, c BASED(pc));
+
+	ALLOCATE c;
+	c.Center = center;
+	c.Radius = radius;
+	c.Area = CircleArea;
+
+	RETURN (pc);
+END;
+
+main: PROCEDURE OPTIONS(main);
+	DECLARE shapes(2) POINTER;
+
+	DECLARE StructPoint(1, p), StructPoint(1, q);
+	p.X = 1; p.Y = 2; q.X = 3; q.Y = 4;
+	shapes(1) = RectangleNew(p, q);
+
+	p.X = 5; p.Y = 5;
+	shapes(2) = CircleNew(p, 10);
+
+	DO i = LBOUND(shapes) TO HBOUND(shapes); BEGIN;
+		DECLARE StructShape(1, shape BASED(shapes(i)));
+		PUT SKIP LIST('Area = ' || shape.Area(shapes(i)));
+	END; END;
+
+	PUT SKIP LIST ('Hello, world!');
+END;
